@@ -169,24 +169,29 @@ class ZFDebug_Controller_Plugin_Debug_Plugin_Database
                     # Run explain if enabled, supported adapter and SELECT query
                     if ($this->_explain && $supportedAdapter) {
                         $queries .= "</td><td style='color:#7F7F7F;padding-left:2em;' nowrap>";
-
-                        foreach ($adapter->fetchAll('EXPLAIN '.$profile->getQuery()) as $explain) {
+                        $queries .= "</td></tr><tr style='color:#7F7F7F;padding-left:2em;' nowrap><td></td><td>"; // better layout
+                        $q = $profile->getQuery();
+                        if (stripos($q, 'select ') === 0) {
                             $queries .= "<div style='padding-bottom:0.5em'>";
-                            $explainData = array(
-                                'Type' => $explain['select_type'] . ', ' . $explain['type'],
-                                'Table' => $explain['table'],
-                                'Possible keys' => str_replace(',', ', ', $explain['possible_keys']),
-                                'Key used' => $explain['key'],
-                            );
-                            if ($explain['Extra']) {
-                                $explainData['Extra'] = $explain['Extra'];
-                            }
-                            $explainData['Rows'] = $explain['rows'];
+                            $queries .= '<table><thead><tr>';
+                            $headerAdded = false;
+                            foreach ($adapter->fetchAll('EXPLAIN '.$profile->getQuery()) as $explain) {
+                                $explain = (array)$explain;
+                                if (!$headerAdded) {
+                                    foreach ($explain as $header => $item) {
+                                        $queries .= '<th style="padding: 1px 2px">'.$header.'</th>';
+                                    }
+                                    $queries .= '</tr></thead><tbody>';
+                                    $headerAdded = true;
+                                }
 
-                            $explainEnd = end($explainData);
-                            foreach ($explainData as $key => $value) {
-                                $queries .= "$key: <span style='color:#ffb13e'>$value</span><br>\n";
+                                $queries .= '<tr>';
+                                foreach ($explain as $header => $item) {
+                                    $queries .= '<td style="padding: 1px 2px">'.(null !== $item ? $item : '<i>NULL</i>').'</td>';
+                                }
+                                $queries .= '</tr>';
                             }
+                            $queries .= '</tbody></table>';
                             $queries .= "</div>";
                         }
                     }
